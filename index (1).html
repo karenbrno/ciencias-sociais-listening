@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ciências Sociais — Listening</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#FBFAF7; --bg-2:#F1EFE6; --panel:#fff; --line:#E4E1D8;
+    --ink:#0E0E10; --ink-dim:#3A3935; --ink-faint:#6B6A63;
+    --pink:#FF3D8A; --purple:#7C3AED; --green:#22C55E; --teal:#2DD4BF; --amber:#F59E0B; --grey:#94A3B8;
+    --font-h:"Archivo Black","Inter",sans-serif; --font-b:"Inter",-apple-system,sans-serif;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; margin:0; }
+  body{ font-family:var(--font-b); background:var(--bg); color:var(--ink);
+    display:flex; flex-direction:column;
+    padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px); }
+  a{ color:var(--ink); }
+
+  .shell-nav{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:12px 20px; border-bottom:2px solid var(--ink); flex:none; }
+  .shell-brand{ font-family:var(--font-h); font-size:13px; margin-right:auto; }
+  .tab{ font-weight:700; font-size:12.5px; background:#fff; border:1.5px solid var(--ink); border-radius:20px; padding:8px 16px; cursor:pointer; color:var(--ink); }
+  .tab:hover{ background:#F1F0EA; }
+  .tab.active{ color:#fff; border-color:var(--tc); background:var(--tc); }
+  .screens{ flex:1; position:relative; min-height:0; overflow:auto; }
+  .screen{ display:none; }
+  .screen.active{ display:block; }
+
+  .wrap{ max-width:1160px; margin:0 auto; padding:22px 26px 60px; }
+  .headline{ font-family:var(--font-h); line-height:.92; margin:0; font-size:clamp(40px,8vw,88px); }
+  .headline .outline{ color:transparent; -webkit-text-stroke:2.2px var(--ink); }
+  .headline .solid{ color:var(--pink); }
+  .subtitle{ font-size:13.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-faint); margin:10px 0 18px; font-weight:600; }
+  .lede{ font-size:15px; line-height:1.7; max-width:880px; }
+  .n-badge{ background:var(--ink); color:#fff; font-size:11px; font-weight:700; padding:7px 12px; border-radius:20px; }
+  .topbar{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; }
+
+  .segbar{ display:flex; margin-top:24px; border-radius:10px; overflow:hidden; flex-wrap:wrap; }
+  .seg{ flex:1; min-width:180px; padding:16px 18px; color:#fff; }
+  .seg .n{ font-size:11.5px; opacity:.85; font-weight:600; }
+  .seg .name{ font-family:var(--font-h); font-size:16px; margin-top:3px; }
+  .seg .sub{ font-size:11px; opacity:.9; text-transform:uppercase; margin-top:2px; }
+
+  .interactive-tag{ display:flex; align-items:center; gap:10px; margin:22px 0 4px; font-size:12px; }
+  .interactive-tag .pill{ background:var(--ink); color:#fff; font-weight:700; font-size:10.5px; padding:5px 10px; border-radius:20px; }
+  .interactive-tag span.hint{ color:var(--ink-faint); }
+
+  .curverow{ display:grid; grid-template-columns:220px 1fr 130px; gap:18px; align-items:center; padding:18px 0; border-bottom:1px solid var(--line); cursor:pointer; }
+  .curverow .title{ font-family:var(--font-h); font-size:14px; }
+  .curverow .desc{ font-size:12px; color:var(--ink-faint); margin-top:3px; }
+  .curverow svg{ width:100%; height:70px; display:block; }
+  .curverow .stat{ text-align:right; }
+  .curverow .stat .big{ font-family:var(--font-h); font-size:19px; }
+  .curverow .stat .lbl{ font-size:10.5px; color:var(--ink-faint); text-transform:uppercase; }
+  .falas{ display:none; grid-column:1/-1; margin-top:6px; padding-top:14px; border-top:1px dashed var(--line); grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px; }
+  .falas.open{ display:grid; }
+  .fala{ background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:12px 14px; }
+  .fala .author{ font-weight:700; font-size:12.5px; }
+  .fala .txt{ font-size:12.5px; color:var(--ink-dim); line-height:1.5; margin-top:4px; }
+  .fala .ix{ font-size:11px; color:var(--ink-faint); margin-top:6px; }
+
+  .cards{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:34px; }
+  .card{ border-top:5px solid; border-radius:2px; background:#fff; padding:20px 18px; box-shadow:0 1px 0 var(--line); }
+  .card .eyebrow{ font-size:11px; font-weight:700; text-transform:uppercase; }
+  .card h3{ font-family:var(--font-h); font-size:16px; margin:8px 0 12px; }
+  .card .bigstat{ font-family:var(--font-h); font-size:32px; }
+  .card .statlbl{ font-size:11.5px; color:var(--ink-faint); margin:2px 0 10px; }
+  .card .quote{ font-size:12.5px; color:var(--ink-dim); line-height:1.5; padding:10px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); margin:10px 0; }
+  .card ul{ margin:0; padding-left:16px; font-size:12px; color:var(--ink-dim); line-height:1.75; }
+
+  .roda-title{ font-family:var(--font-h); font-size:clamp(24px,4vw,34px); color:var(--pink); margin-top:50px; }
+  .roda-sub{ font-size:13px; color:var(--ink-faint); max-width:420px; }
+  .roda-body{ display:flex; gap:30px; margin-top:16px; flex-wrap:wrap; align-items:flex-start; }
+  .rl-row{ display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--line); }
+  .rl-row .sw{ width:11px; height:11px; border-radius:50%; flex:none; }
+  .rl-row .lbl{ flex:1; font-size:13.5px; font-weight:600; }
+  .rl-row .barwrap{ width:110px; height:6px; background:#EEEDE6; border-radius:4px; overflow:hidden; }
+  .rl-row .bar{ height:100%; border-radius:4px; }
+  .rl-row .val{ font-size:12.5px; font-weight:700; width:34px; text-align:right; }
+  .roda-note{ font-size:13.5px; line-height:1.72; max-width:900px; margin-top:20px; }
+  .roda-legend{ flex:1; min-width:260px; }
+
+  .cta-row{ display:flex; gap:12px; margin:40px 0 10px; flex-wrap:wrap; }
+  .btn{ font-weight:700; font-size:12.5px; text-decoration:none; padding:11px 18px; border-radius:8px; border:1.5px solid var(--ink); color:var(--ink); }
+  .btn.primary{ background:var(--ink); color:#fff; }
+  footer.pf{ margin-top:36px; padding:16px 0; border-top:1px solid var(--line); font-size:11.5px; color:var(--ink-faint); display:flex; justify-content:space-between; flex-wrap:wrap; gap:6px; }
+
+  /* report-specific */
+  .rep-hero{ padding:40px 0 20px; }
+  .rep-hero h1{ font-family:var(--font-h); font-size:clamp(28px,5vw,42px); max-width:16ch; margin:0 0 14px; }
+  .rep-hero-stats{ display:flex; gap:26px; flex-wrap:wrap; padding-top:10px; border-top:1px solid var(--line); margin-top:20px; }
+  .rep-hero-stats .num{ font-family:var(--font-h); font-size:24px; }
+  .rep-hero-stats .lbl{ font-size:11.5px; color:var(--ink-faint); }
+  .rep section{ padding-top:44px; }
+  .rep section h2{ font-family:var(--font-h); font-size:22px; margin:0 0 6px; }
+  .rep section h3{ font-size:14px; font-weight:700; margin:24px 0 8px; }
+  .rep table{ width:100%; border-collapse:collapse; margin:12px 0; font-size:13.5px; }
+  .rep th{ text-align:left; font-size:11px; background:var(--ink-dim); color:#fff; padding:8px 10px; }
+  .rep td{ padding:9px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+  .rep .callout{ background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:16px 18px; margin:16px 0; font-size:14px; line-height:1.65; }
+
+  /* cluster map */
+  #cluster-screen-inner{ position:relative; height:calc(100vh - 54px); min-height:520px; display:grid; grid-template-columns:1fr 320px; }
+  #plot-wrap{ position:relative; overflow:hidden; background:var(--bg); }
+  #plot-wrap svg{ width:100%; height:100%; cursor:grab; }
+  .node{ cursor:pointer; }
+  .node circle{ stroke:rgba(0,0,0,0.25); stroke-width:.6px; transition:opacity .3s; }
+  .node.dim circle{ opacity:.08; }
+  .node.selected circle{ stroke:var(--ink); stroke-width:2.2px; }
+  .cluster-label{ font-family:var(--font-h); pointer-events:none; paint-order:stroke; stroke:var(--bg); stroke-width:6px; cursor:pointer; }
+  #tooltip{ position:absolute; pointer-events:none; max-width:240px; background:#0E0E10; color:#FBFAF7; border-radius:8px; padding:8px 10px; font-size:12px; opacity:0; transform:translate(-50%,-100%); z-index:5; }
+  aside.side{ border-left:1px solid var(--line); background:var(--bg-2); overflow-y:auto; padding:16px 18px; }
+  aside.side h2{ font-size:11px; letter-spacing:.04em; color:var(--ink-faint); margin:0 0 10px; }
+  .chip{ display:flex; align-items:center; gap:10px; width:100%; background:none; border:none; cursor:pointer; padding:6px; border-radius:6px; font-size:12.5px; }
+  .chip:hover{ background:rgba(0,0,0,.05); }
+  .chip.off{ opacity:.35; }
+  .chip .sw{ width:10px; height:10px; border-radius:50%; }
+  .chip .chip-name{ flex:1; } .chip .chip-count{ color:var(--ink-faint); }
+  #search{ width:100%; border:1px solid var(--line); border-radius:8px; padding:8px 10px; font-size:13px; margin-bottom:14px; }
+  #detail{ margin-top:16px; font-size:12.5px; color:var(--ink-dim); line-height:1.6; }
+  #detail .badge{ display:inline-block; font-size:10.5px; font-weight:700; color:#fff; padding:3px 9px; border-radius:20px; margin-bottom:8px; }
+  #detail .author{ font-family:var(--font-h); font-size:14px; margin:0 0 6px; }
+  #detail a{ display:inline-block; margin-top:8px; font-size:11.5px; }
+
+  @media (max-width:860px){
+    #cluster-screen-inner{ grid-template-columns:1fr; grid-template-rows: 60vh 1fr; height:auto; }
+    .curverow{ grid-template-columns:1fr; } .curverow .stat{ text-align:left; }
+    .cards{ grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+  <nav class="shell-nav">
+    <div class="shell-brand">LISTENING ⊙ CIÊNCIAS SOCIAIS</div>
+    <button class="tab active" style="--tc:#FF3D8A" data-s="feed">Ciências Sociais no Feed</button>
+    <button class="tab" style="--tc:#7C3AED" data-s="cluster">Mapa de Clusters</button>
+    <button class="tab" style="--tc:#22C55E" data-s="report">Relatório completo</button>
+    <label class="tab" id="upload-btn" style="--tc:#0E0E10; cursor:pointer;">↑ Atualizar planilha
+      <input type="file" id="xlsx-input" accept=".xlsx" style="display:none">
+    </label>
+    <a class="tab" id="download-json" style="--tc:#0E0E10; display:none; text-decoration:none;" download="dados.json">↓ Baixar dados.json</a>
+    <span id="upload-status" style="font-size:11.5px;color:var(--ink-faint)"></span>
+  </nav>
+
+  <div class="screens">
+    <div class="screen active" id="screen-feed"><div id="feed-root"></div></div>
+    <div class="screen" id="screen-cluster"><div id="cluster-screen-inner">
+      <div id="plot-wrap"><svg id="plot"></svg><div id="tooltip"></div></div>
+      <aside class="side">
+        <input id="search" type="text" placeholder="Buscar autor ou palavra…">
+        <h2>Editorias (clique p/ isolar)</h2>
+        <div id="chips"></div>
+        <div id="detail"><p style="color:var(--ink-faint)">Clique numa bolha ou editoria.</p></div>
+      </aside>
+    </div></div>
+    <div class="screen" id="screen-report"><div id="report-root"></div></div>
+  </div>
+
+<script>
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');
+  document.getElementById('screen-'+t.dataset.s).classList.add('active');
+}));
+
+const esc = s => String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const trunc = (s,n) => String(s||'').length>n ? String(s).slice(0,n).trim()+'…' : String(s);
+const fmtDate = s => { if(!s) return '—'; const d = new Date(s+'T00:00:00'); return isNaN(d) ? '—' : d.toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'}); };
+const pct = (a,b) => b ? Math.round(a/b*100) : 0;
+
+const clusterSkeleton = document.getElementById('cluster-screen-inner').innerHTML;
+function renderAll(DATA){
+  renderFeed(DATA);
+  renderReport(DATA);
+  document.getElementById('cluster-screen-inner').innerHTML = clusterSkeleton;
+  renderCluster(DATA);
+}
+
+fetch('./dados.json').then(r=>r.json()).then(renderAll).catch(err => {
+  document.getElementById('feed-root').innerHTML = '<div style="padding:60px 26px">Não consegui carregar <code>dados.json</code>. Se você abriu este arquivo direto no navegador (file://), isso é esperado — hospede a pasta (GitHub Pages, Netlify etc.) para o fetch funcionar, ou use o botão "↑ Atualizar planilha" acima para carregar uma planilha .xlsx direto. Erro: '+esc(err.message)+'</div>';
+});
+
+// ---------------------------------------------------------------- CLIENT-SIDE XLSX -> DATA
+const CLUSTER_DEFS = {
+  emprego:{name:"Empregabilidade e mercado de trabalho",short:"Empregabilidade",color:"#FF3D8A",kw:['emprego','trabalho','mercado','concurso','estágio','estagi','desemprega','desempregad','salário','vaga','carreira','fome','sobreviv','currículo','bolsa de estágio','privada','terceiro setor','requalif','telemarketing']},
+  vivencia:{name:"Vivência acadêmica — escolha, vocação e rotina",short:"Vivência acadêmica",color:"#7C3AED",kw:['escolhi','vocação','vocacional','grade curricular','vou fazer','quero fazer','nota de corte','enem','sisu','vestibular','matéria','materia','prova','trabalho de sociologia','trabalho de antropologia','aula','estudar','apresentação','apresentacao','estudo','trancar','desisti','me formei','me formando','bacharel','licenciatura']},
+  dados:{name:"Interdisciplinaridade — Humanas + Dados/Economia",short:"Humanas + Dados",color:"#2DD4BF",kw:['dados','quantitativ','estatística','estatistica','economia','economista','neurociência','neurociencia','aplicada','aplicadas','derivada','gráfico','microeconom']},
+  pos:{name:"Pós-graduação e redes de contato",short:"Pós-graduação",color:"#22C55E",kw:['mestrado','doutorado','pós-gradua','pos-gradua','congresso','orientador','pesquisador','pesquisa','phd','publicação','fflch','etnografia']},
+  politica:{name:"Uso político do termo (polarização)",short:"Polêmica política",color:"#F59E0B",kw:['pt ','bolsonaro','lula','esquerda','direita','petista','bolsonarista','militante','comunis','marxis','esquerdista']},
+  outros:{name:"Outros / diversos",short:"Outros",color:"#94A3B8",kw:[]}
+};
+const CLUSTER_ORDER = ["emprego","vivencia","dados","pos","politica","outros"];
+const EDITORIA_DEFS = {
+  carreira:{label:"1. \"E depois?\" — Carreira e mercado",short:"E depois?",sub:"Carreira & mercado",color:"#FF3D8A",clusters:["emprego","dados"],desc:"Empregabilidade + Humanas com Dados",angulos:["Mapeamento de setores para quem se formou","Trajetórias híbridas humanas + dados","Carreiras fora da academia para pós-graduados"]},
+  vida_academica:{label:"2. \"Por dentro do curso\" — Vida acadêmica",short:"Por dentro do curso",sub:"Vida acadêmica",color:"#7C3AED",clusters:["vivencia"],desc:"Vivência acadêmica: escolha, vocação e rotina",angulos:["Grade curricular comentada e rotina de leitura","Expectativa vs. realidade do mestrado","Conciliar trabalho e estudo na pós"]},
+  pesquisa:{label:"3. \"Vida de pesquisador\" — Pós e redes",short:"Vida de pesquisador",sub:"Pós-graduação & redes",color:"#22C55E",clusters:["pos"],desc:"Pós-graduação e redes de contato",angulos:["Iniciação científica ainda na graduação","Como escolher orientador e processo seletivo","Guia de bolsas, editais e congressos"]}
+};
+function classify(text){
+  const t=(text||'').toLowerCase();
+  let best=null, bestScore=0;
+  for(const k in CLUSTER_DEFS){ const kw=CLUSTER_DEFS[k].kw; if(!kw.length) continue;
+    const score = kw.reduce((s,w)=>s+(t.includes(w)?1:0),0);
+    if(score>bestScore){ bestScore=score; best=k; } }
+  return best || 'outros';
+}
+function median(arr){ const s=[...arr].sort((a,b)=>a-b); const n=s.length; return n%2 ? s[(n-1)/2] : (s[n/2-1]+s[n/2])/2; }
+function toISODate(v){
+  if(v instanceof Date) return v.toISOString().slice(0,10);
+  const d = new Date(v); return isNaN(d) ? '' : d.toISOString().slice(0,10);
+}
+function monthKey(iso){ return iso.slice(0,7); } // YYYY-MM
+function monthLabel(key){
+  const [y,m] = key.split('-').map(Number);
+  const name = new Date(y, m-1, 1).toLocaleDateString('pt-BR',{month:'short'});
+  return name.charAt(0).toUpperCase()+name.slice(1).replace('.','') + '/' + y;
+}
+
+function buildDataFromRows(rows){
+  const posts = rows.map((r,i)=>{
+    const dateRaw = r['Date'] ?? r['date'];
+    const iso = toISODate(dateRaw);
+    const content = String(r['Content'] ?? r['content'] ?? '').slice(0,280);
+    return {
+      id:i, cluster: classify(content), author: String(r['Profile name'] ?? r['author'] ?? 'anônimo'),
+      content, interactions: Number(r['Total interactions'] ?? r['interactions'] ?? 0) || 0,
+      date: iso, url: String(r['View on platform'] ?? r['url'] ?? ''),
+      contentType: String(r['Content type'] ?? '').toLowerCase()
+    };
+  }).filter(p=>p.date);
+
+  const interactionsArr = posts.map(p=>p.interactions);
+  const clusters = {};
+  CLUSTER_ORDER.forEach(k=>{
+    const g = posts.filter(p=>p.cluster===k);
+    const avg = g.length ? g.reduce((s,p)=>s+p.interactions,0)/g.length : 0;
+    clusters[k] = { name:CLUSTER_DEFS[k].name, short:CLUSTER_DEFS[k].short, color:CLUSTER_DEFS[k].color,
+      posts:g.length, interactions:g.reduce((s,p)=>s+p.interactions,0), avg:Math.round(avg*100)/100 };
+  });
+  const maxAvg = Math.max(...CLUSTER_ORDER.map(k=>clusters[k].avg)) || 1;
+  CLUSTER_ORDER.forEach(k=> clusters[k].score10 = Math.round((clusters[k].avg/maxAvg*10)*10)/10 );
+
+  const monthKeys = [...new Set(posts.map(p=>monthKey(p.date)))].sort();
+  const editorias = {};
+  Object.keys(EDITORIA_DEFS).forEach(key=>{
+    const meta = EDITORIA_DEFS[key];
+    const g = posts.filter(p=>meta.clusters.includes(p.cluster));
+    const monthly = monthKeys.map(mk => g.filter(p=>monthKey(p.date)===mk).length);
+    const top = [...g].sort((a,b)=>b.interactions-a.interactions).slice(0,5)
+      .map(p=>({author:p.author, content:p.content.slice(0,220), interactions:p.interactions}));
+    editorias[key] = { label:meta.label, short:meta.short, sub:meta.sub, color:meta.color, desc:meta.desc, angulos:meta.angulos,
+      posts:g.length, interactions:g.reduce((s,p)=>s+p.interactions,0),
+      avg: g.length ? Math.round((g.reduce((s,p)=>s+p.interactions,0)/g.length)*100)/100 : 0,
+      monthly, monthLabels: monthKeys.map(monthLabel), top_quotes: top };
+  });
+
+  const typeCounts = {original:0, resposta:0, compartilhamento:0};
+  posts.forEach(p=>{ if(p.contentType==='post') typeCounts.original++; else if(p.contentType==='reply') typeCounts.resposta++; else if(p.contentType==='shared') typeCounts.compartilhamento++; });
+
+  const topGeral = [...posts].sort((a,b)=>b.interactions-a.interactions).slice(0,5)
+    .map(p=>({author:p.author, content:p.content.slice(0,200), interactions:p.interactions}));
+
+  const dates = posts.map(p=>p.date).sort();
+  const meta = {
+    gerado_em: new Date().toISOString().slice(0,10),
+    total_posts: posts.length,
+    periodo: { inicio: dates[0] || '', fim: dates[dates.length-1] || '' },
+    plataforma: "Twitter/X",
+    interacoes: {
+      media: interactionsArr.length ? Math.round((interactionsArr.reduce((a,b)=>a+b,0)/interactionsArr.length)*10)/10 : 0,
+      mediana: interactionsArr.length ? median(interactionsArr) : 0,
+      max: interactionsArr.length ? Math.max(...interactionsArr) : 0
+    },
+    tipo_conteudo: typeCounts,
+    monthly_total: monthKeys.map(mk=>({ mes: monthLabel(mk), posts: posts.filter(p=>monthKey(p.date)===mk).length })),
+    top_geral: topGeral,
+    cobertura_editorias_pct: posts.length ? Math.round((Object.values(editorias).reduce((s,e)=>s+e.posts,0)/posts.length*1000))/10 : 0
+  };
+
+  return { meta, clusters, cluster_order: CLUSTER_ORDER, editorias, editoria_order:["carreira","vida_academica","pesquisa"], posts: posts.map(({contentType,...p})=>p) };
+}
+
+document.getElementById('xlsx-input').addEventListener('change', function(e){
+  const file = e.target.files[0]; if(!file) return;
+  const statusEl = document.getElementById('upload-status');
+  statusEl.textContent = 'Processando ' + file.name + '…';
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    try{
+      const wb = XLSX.read(ev.target.result, {type:'array', cellDates:true});
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, {defval:''});
+      const DATA = buildDataFromRows(rows);
+      renderAll(DATA);
+      statusEl.textContent = DATA.meta.total_posts + ' posts carregados de ' + file.name + ' (local, não salvo)';
+      const blob = new Blob([JSON.stringify(DATA)], {type:'application/json'});
+      const link = document.getElementById('download-json');
+      link.href = URL.createObjectURL(blob);
+      link.style.display = 'inline-block';
+      document.querySelector('[data-s=feed]').click();
+    }catch(err){
+      statusEl.textContent = 'Erro ao processar: ' + err.message;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+// ---------------------------------------------------------------- FEED
+function curveSvg(vals, color, labels){
+  vals = vals || [];
+  labels = labels || vals.map((_,i)=>'M'+(i+1));
+  if(vals.length===0) return `<svg viewBox="0 0 280 90"><text x="20" y="45" font-size="11" fill="#6B6A63">sem dados no período</text></svg>`;
+  const min=Math.min(...vals), max=Math.max(...vals), range=(max-min)||1;
+  const n=vals.length;
+  const xs = n===1 ? [140] : vals.map((_,i)=> 20 + i*(240/(n-1)));
+  const ys = vals.map(v => 75-((v-min)/range*60));
+  const pts = xs.map((x,i)=>x.toFixed(1)+','+ys[i].toFixed(1)).join(' ');
+  let dots = xs.map((x,i)=>`<circle cx="${x.toFixed(1)}" cy="${ys[i].toFixed(1)}" r="4" fill="${color}"/>`).join('');
+  let txt = xs.map((x,i)=>{
+    const anchor = n===1 ? 'middle' : (i===0?'start':(i===n-1?'end':'middle'));
+    return `<text x="${x.toFixed(1)}" y="86" text-anchor="${anchor}" font-size="10" fill="#6B6A63">${esc(labels[i]||'')} · ${vals[i]}</text>`;
+  }).join('');
+  return `<svg viewBox="0 0 280 90"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="3"/>${dots}${txt}</svg>`;
+}
+
+function renderFeed(DATA){
+  const m = DATA.meta;
+  if(!m.total_posts){
+    document.getElementById('feed-root').innerHTML = `<div class="wrap"><div style="padding:60px 0;max-width:620px">
+      <h2 style="font-family:var(--font-h);font-size:22px">Nenhum post reconhecido nesta planilha</h2>
+      <p style="color:var(--ink-dim);line-height:1.6">A ferramenta não encontrou linhas válidas. Confirme se a planilha tem as colunas <b>Date</b>, <b>Content</b>, <b>Total interactions</b>, <b>Profile name</b> e <b>Content type</b> com esses nomes exatos (é o padrão exportado pela ferramenta de listening) — outros formatos de planilha ainda não são reconhecidos automaticamente.</p></div></div>`;
+    return;
+  }
+  const eds = DATA.editoria_order.map(k=>({key:k,...DATA.editorias[k]}));
+  const cl = DATA.cluster_order.map(k=>({key:k,...DATA.clusters[k]}));
+  const maxScore = Math.max(...cl.map(c=>c.score10)) || 10;
+
+  const html = `
+    <div class="wrap">
+      <div class="topbar"><div></div><div class="n-badge">N = ${m.total_posts} POSTS${m.periodo.inicio ? ' · ' + fmtDate(m.periodo.inicio) + ' – ' + fmtDate(m.periodo.fim) : ''}</div></div>
+      <header>
+        <h1 class="headline"><span class="outline">CIÊNCIAS</span> <span class="solid">SOCIAIS</span><br><span class="solid">NO FEED</span></h1>
+        <div class="subtitle">O que a conversa revela sobre o curso — da graduação à pós</div>
+        <p class="lede">Entre ${fmtDate(m.periodo.inicio)} e ${fmtDate(m.periodo.fim)}, ouvimos <b>${m.total_posts} conversas espontâneas</b> no ${m.plataforma} sobre Ciências Sociais, Sociologia, Antropologia e Ciência Política. Três editorias cobrem estudante de graduação, mestrando e pesquisador de pós — juntas somam <b>${m.cobertura_editorias_pct}% de tudo que se fala</b> sobre o curso.</p>
+      </header>
+
+      <div class="segbar">
+        ${eds.map(e=>`<div class="seg" style="background:${e.color}"><div class="n">n = ${e.posts}</div><div class="name">${esc(e.short).toUpperCase()}</div><div class="sub">${esc(e.sub)}</div></div>`).join('')}
+      </div>
+
+      <div class="interactive-tag"><span class="pill">↓ INTERATIVO</span><span class="hint">Clique em cada linha para expandir e ler falas reais dos posts</span></div>
+
+      <div>
+        ${eds.map((e,i)=>`
+          <div class="curverow" data-f="f${i}">
+            <div><div class="title">${i+1} · ${esc(e.short)}</div><div class="desc">${esc(e.desc)}</div></div>
+            ${curveSvg(e.monthly, e.color, e.monthLabels)}
+            <div class="stat"><div class="big">${e.interactions}</div><div class="lbl">interações totais</div></div>
+          </div>
+          <div class="falas" id="f${i}">
+            ${e.top_quotes.slice(0,3).map(q=>`<div class="fala"><div class="author">${esc(q.author)}</div><div class="txt">"${esc(trunc(q.content,130))}"</div><div class="ix">${q.interactions} interações</div></div>`).join('')}
+          </div>`).join('')}
+      </div>
+
+      <div class="cards">
+        ${eds.map(e=>`
+          <div class="card" style="border-color:${e.color}">
+            <div class="eyebrow" style="color:${e.color}">Graduação · Mestrado · Pós</div>
+            <h3>${esc(e.label)}</h3>
+            <div class="bigstat">${e.posts}</div><div class="statlbl">posts na coleta (${pct(e.posts,m.total_posts)}% do total)</div>
+            <div class="quote">"${esc(trunc(e.top_quotes[0]?.content||'',110))}"</div>
+            <ul>${e.angulos.map(a=>`<li>${esc(a)}</li>`).join('')}</ul>
+          </div>`).join('')}
+      </div>
+
+      <div class="roda-title">A RODA DO ENGAJAMENTO</div>
+      <div class="roda-sub">Intensidade média de interação por cluster temático da coleta completa (0–10)</div>
+      <div class="roda-body">
+        <div id="radar-holder"></div>
+        <div class="roda-legend">
+          ${cl.slice().sort((a,b)=>b.score10-a.score10).map(c=>`
+            <div class="rl-row"><span class="sw" style="background:${c.color}"></span><span class="lbl">${esc(c.short)}</span>
+              <span class="barwrap"><span class="bar" style="width:${pct(c.score10,10)}%;background:${c.color}"></span></span>
+              <span class="val">${c.score10}</span></div>`).join('')}
+        </div>
+      </div>
+      <p class="roda-note">A roda mostra um padrão claro: os clusters de menor volume às vezes têm o maior engajamento médio por post — sinal de que intensidade e volume contam histórias diferentes. As 3 editorias propostas cobrem os clusters de maior volume e maior intensidade, deixando de fora só o tema mais sensível (política) e o mais heterogêneo (outros).</p>
+
+      <div class="cta-row">
+        <a class="btn primary" href="#" onclick="document.querySelector('[data-s=cluster]').click();return false;">Ver mapa de clusters interativo ↗</a>
+        <a class="btn" href="#" onclick="document.querySelector('[data-s=report]').click();return false;">Ver relatório completo ↗</a>
+      </div>
+      <footer class="pf"><span>LISTENING × CIÊNCIAS SOCIAIS — ${fmtDate(m.periodo.inicio)} a ${fmtDate(m.periodo.fim)} · ${m.plataforma} · n = ${m.total_posts}</span><span>Gerado em ${fmtDate(m.gerado_em)} a partir de dados.json</span></footer>
+    </div>`;
+  document.getElementById('feed-root').innerHTML = html;
+
+  document.querySelectorAll('.curverow').forEach(r=>r.addEventListener('click',()=>document.getElementById(r.dataset.f).classList.toggle('open')));
+
+  // radar svg
+  const n=cl.length, cx=210, cy=200, R=150;
+  const pt = (i,val) => { const ang=-Math.PI/2+i*(2*Math.PI/n); const r=R*(val/10); return [cx+r*Math.cos(ang), cy+r*Math.sin(ang)]; };
+  const axisPt = (i) => { const ang=-Math.PI/2+i*(2*Math.PI/n); return [cx+R*Math.cos(ang), cy+R*Math.sin(ang)]; };
+  const labelPt = (i) => { const ang=-Math.PI/2+i*(2*Math.PI/n); return [cx+(R+70)*Math.cos(ang), cy+(R+30)*Math.sin(ang)]; };
+  let rings = [2,4,6,8,10].map(ring=>{
+    const p = cl.map((c,i)=>{ const ang=-Math.PI/2+i*(2*Math.PI/n); const r=R*(ring/10); return (cx+r*Math.cos(ang)).toFixed(1)+','+(cy+r*Math.sin(ang)).toFixed(1); }).join(' ');
+    return `<polygon points="${p}" fill="none" stroke="#EEEDE6" stroke-width="1"/>`;
+  }).join('');
+  let axes = cl.map((c,i)=>{ const [x,y]=axisPt(i); return `<line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#E4E1D8"/>`; }).join('');
+  let poly = cl.map((c,i)=>pt(i,c.score10).map(v=>v.toFixed(1)).join(',')).join(' ');
+  let dots = cl.map((c,i)=>{ const [x,y]=pt(i,c.score10); return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4" fill="${c.color}"/>`; }).join('');
+  let labels = cl.map((c,i)=>{ const [x,y]=labelPt(i); const anchor = x>cx+5?'start':(x<cx-5?'end':'middle'); return `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="${anchor}" font-size="11.5" font-weight="700" fill="#0E0E10">${esc(c.short)} · ${c.score10}</text>`; }).join('');
+  document.getElementById('radar-holder').innerHTML = `<svg width="420" height="400" viewBox="0 0 420 400">${rings}${axes}<polygon points="${poly}" fill="#FF3D8A" fill-opacity="0.16" stroke="#FF3D8A" stroke-width="2.5"/>${dots}${labels}</svg>`;
+}
+
+// ---------------------------------------------------------------- REPORT
+function renderReport(DATA){
+  const m = DATA.meta;
+  if(!m.total_posts){ document.getElementById('report-root').innerHTML = ''; return; }
+  const tipoRows = [['Posts originais', m.tipo_conteudo.original], ['Respostas (replies)', m.tipo_conteudo.resposta], ['Compartilhamentos (RT)', m.tipo_conteudo.compartilhamento]];
+  const tipoTotal = m.tipo_conteudo.original + m.tipo_conteudo.resposta + m.tipo_conteudo.compartilhamento;
+  const html = `
+    <div class="wrap rep">
+      <div class="rep-hero">
+        <div class="subtitle" style="margin-top:0">Planejamento de conteúdo e pauta editorial</div>
+        <h1>O que a conversa sobre Ciências Sociais revela</h1>
+        <p class="lede">Leitura consolidada da coleta de social listening — gerada automaticamente a partir de <code>dados.json</code>.</p>
+        <div class="rep-hero-stats">
+          <div><div class="num">${m.total_posts}</div><div class="lbl">posts coletados</div></div>
+          <div><div class="num">${m.plataforma}</div><div class="lbl">plataforma</div></div>
+          <div><div class="num">${DATA.cluster_order.length}</div><div class="lbl">clusters temáticos</div></div>
+          <div><div class="num">${Math.max(...m.monthly_total.map(x=>x.posts))}</div><div class="lbl">posts no mês de pico</div></div>
+        </div>
+      </div>
+
+      <section>
+        <h2>Ficha técnica</h2>
+        <table>
+          <tr><th>Métrica</th><th>Valor</th></tr>
+          <tr><td>Total de posts</td><td>${m.total_posts}</td></tr>
+          <tr><td>Plataforma</td><td>${m.plataforma} (100%)</td></tr>
+          <tr><td>Período</td><td>${fmtDate(m.periodo.inicio)} a ${fmtDate(m.periodo.fim)}</td></tr>
+          <tr><td>Interações — média / mediana / máximo</td><td>${m.interacoes.media} / ${m.interacoes.mediana} / ${m.interacoes.max}</td></tr>
+        </table>
+        <h3>Volume por tipo de conteúdo</h3>
+        <table><tr><th>Tipo</th><th>Quantidade</th><th>%</th></tr>
+          ${tipoRows.map(([n,v])=>`<tr><td>${n}</td><td>${v}</td><td>${pct(v,tipoTotal)}%</td></tr>`).join('')}
+        </table>
+        <h3>Evolução mensal</h3>
+        <table><tr><th>Mês</th><th>Posts</th></tr>${m.monthly_total.map(x=>`<tr><td>${x.mes}</td><td>${x.posts}</td></tr>`).join('')}</table>
+        <h3>Posts de maior alcance</h3>
+        <table><tr><th>Interações</th><th>Conteúdo</th></tr>
+          ${m.top_geral.map(p=>`<tr><td>${p.interactions}</td><td><b>${esc(p.author)}</b> — ${esc(trunc(p.content,130))}</td></tr>`).join('')}
+        </table>
+      </section>
+
+      <section>
+        <h2>Clusters temáticos</h2>
+        <table><tr><th>Cluster</th><th>Posts</th><th>Interações</th><th>Média/post</th></tr>
+          ${DATA.cluster_order.map(k=>{const c=DATA.clusters[k]; return `<tr><td>${esc(c.name)}</td><td>${c.posts}</td><td>${c.interactions}</td><td>${c.avg}</td></tr>`}).join('')}
+        </table>
+      </section>
+
+      <section>
+        <h2>As 3 editorias propostas</h2>
+        ${DATA.editoria_order.map(k=>{const e=DATA.editorias[k]; return `
+          <div class="callout" style="border-left:4px solid ${e.color}">
+            <b>${esc(e.label)}</b> — ${e.posts} posts, ${e.interactions} interações (média ${e.avg}/post).<br>
+            ${esc(e.desc)}. Ângulos de pauta: ${e.angulos.map(esc).join('; ')}.
+          </div>`}).join('')}
+      </section>
+
+      <div class="cta-row">
+        <a class="btn primary" href="#" onclick="document.querySelector('[data-s=cluster]').click();return false;">Ver mapa de clusters interativo ↗</a>
+      </div>
+      <footer class="pf"><span>Listening · Ciências Sociais · ${m.plataforma} · ${fmtDate(m.periodo.inicio)} a ${fmtDate(m.periodo.fim)}</span><span>Gerado em ${fmtDate(m.gerado_em)}</span></footer>
+    </div>`;
+  document.getElementById('report-root').innerHTML = html;
+}
+
+// ---------------------------------------------------------------- CLUSTER MAP
+function renderCluster(DATA){
+  const CM = DATA.clusters, ORDER = DATA.cluster_order, posts = DATA.posts;
+  const countBy = {}; ORDER.forEach(k=>countBy[k]=CM[k].posts);
+  const svg = d3.select('#plot'); const wrapEl = document.getElementById('plot-wrap');
+  let width = wrapEl.clientWidth, height = wrapEl.clientHeight;
+  const g = svg.append('g'); const labelLayer = g.append('g'); const nodeLayer = g.append('g');
+  svg.call(d3.zoom().scaleExtent([0.5,5]).on('zoom', ev => g.attr('transform', ev.transform)));
+
+  function centers(){
+    const cx=width/2, cy=height/2+6, R=Math.min(width,height)*0.30, out={};
+    ORDER.forEach((k,i)=>{ const a=-Math.PI/2+i*(2*Math.PI/ORDER.length); out[k]={x:cx+R*Math.cos(a), y:cy+R*Math.sin(a)}; });
+    return out;
+  }
+  let C = centers();
+  const rScale = d3.scaleSqrt().domain([0, d3.max(posts,d=>d.interactions)||1]).range([3.2,32]);
+  const nodesData = posts.map(p=>({...p, r:Math.max(3.2,rScale(p.interactions))}));
+
+  const sim = d3.forceSimulation(nodesData)
+    .force('x', d3.forceX(d=>C[d.cluster].x).strength(.1))
+    .force('y', d3.forceY(d=>C[d.cluster].y).strength(.1))
+    .force('collide', d3.forceCollide(d=>d.r+1.4).strength(.9))
+    .force('charge', d3.forceManyBody().strength(-1))
+    .alphaDecay(.02).on('tick', tick);
+
+  const nodeSel = nodeLayer.selectAll('g').data(nodesData,d=>d.id).join('g').attr('class','node')
+    .on('mouseenter',(ev,d)=>tip(ev,d)).on('mousemove',ev=>tipMove(ev)).on('mouseleave',()=>tt.style.opacity=0)
+    .on('click',(ev,d)=>{ev.stopPropagation(); select(d);});
+  nodeSel.append('circle').attr('r',d=>d.r).attr('fill',d=>CM[d.cluster].color);
+  svg.on('click', clearSel);
+
+  function clusterR(key){ const n=countBy[key]||1; return Math.min(150, 34+Math.sqrt(n)*9); }
+  const labelSel = labelLayer.selectAll('text').data(ORDER).join('text').attr('class','cluster-label')
+    .attr('text-anchor','middle').attr('fill',d=>CM[d].color).style('font-size','14px').style('cursor','pointer')
+    .on('click',(ev,d)=>{ev.stopPropagation(); toggle(d);})
+    .text(d=>CM[d].short+' ('+countBy[d]+')');
+
+  function tick(){
+    nodeSel.attr('transform', d=>`translate(${d.x},${d.y})`);
+    labelSel.attr('transform', d=>`translate(${C[d].x},${C[d].y-clusterR(d)-14})`);
+  }
+
+  let isolated=null, query='';
+  const chipsWrap=document.getElementById('chips');
+  ORDER.forEach(k=>{
+    const b=document.createElement('button'); b.className='chip';
+    b.innerHTML=`<span class="sw" style="background:${CM[k].color}"></span><span class="chip-name">${CM[k].short}</span><span class="chip-count">${countBy[k]}</span>`;
+    b.addEventListener('click',()=>toggle(k)); chipsWrap.appendChild(b);
+  });
+  function toggle(k){ isolated = isolated===k ? null : k; refreshChips(); refreshVis(); isolated?summary(isolated):empty(); }
+  function refreshChips(){ document.querySelectorAll('.chip').forEach((c,i)=>c.classList.toggle('off', isolated!==null && isolated!==ORDER[i])); }
+  function refreshVis(){
+    nodeSel.classed('dim', d=>{ const hide = isolated!==null && d.cluster!==isolated; const miss = query && !((d.author||'').toLowerCase().includes(query)||(d.content||'').toLowerCase().includes(query)); return hide||miss; });
+    labelSel.style('opacity', k => (isolated===null||isolated===k)?1:.25);
+  }
+  document.getElementById('search').addEventListener('input', e=>{ query=e.target.value.trim().toLowerCase(); refreshVis(); });
+
+  const tt=document.getElementById('tooltip');
+  function tip(ev,d){ tt.innerHTML=`<b>${esc(d.author)}</b><br>${esc(trunc(d.content,120))}<br><span style="color:#B9C4BA">${d.interactions} interações</span>`; tt.style.opacity=1; tipMove(ev); }
+  function tipMove(ev){ const r=wrapEl.getBoundingClientRect(); tt.style.left=(ev.clientX-r.left)+'px'; tt.style.top=(ev.clientY-r.top-10)+'px'; }
+
+  const detailEl=document.getElementById('detail');
+  function clearSel(){ nodeSel.classed('selected',false); isolated?summary(isolated):empty(); }
+  function select(d){ nodeSel.classed('selected', n=>n.id===d.id);
+    detailEl.innerHTML=`<div class="badge" style="background:${CM[d.cluster].color}">${CM[d.cluster].short}</div><p class="author">${esc(d.author)}</p><div>${esc(d.content)}</div><div style="margin-top:8px;color:var(--ink-faint)">${d.interactions} interações · ${fmtDate(d.date)}</div>${d.url?`<a href="${esc(d.url)}" target="_blank" rel="noopener">Abrir no Twitter/X ↗</a>`:''}`;
+  }
+  function empty(){ detailEl.innerHTML='<p style="color:var(--ink-faint)">Clique numa bolha ou editoria.</p>'; }
+  function summary(key){
+    const list = posts.filter(p=>p.cluster===key); const top = list.slice().sort((a,b)=>b.interactions-a.interactions).slice(0,3);
+    detailEl.innerHTML = `<div class="badge" style="background:${CM[key].color}">${list.length} posts</div><p class="author">${esc(CM[key].name)}</p>` +
+      top.map(p=>`<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line)"><b>${esc(p.author)}</b><br>${esc(trunc(p.content,100))}<br><span style="color:var(--ink-faint)">${p.interactions} interações</span></div>`).join('');
+  }
+
+  window.addEventListener('resize', ()=>{ width=wrapEl.clientWidth; height=wrapEl.clientHeight; C=centers();
+    sim.force('x', d3.forceX(d=>C[d.cluster].x).strength(.1)); sim.force('y', d3.forceY(d=>C[d.cluster].y).strength(.1)); sim.alpha(.3).restart(); });
+}
+</script>
+</body>
+</html>
